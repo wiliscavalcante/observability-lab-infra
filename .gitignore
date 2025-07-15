@@ -1,0 +1,22 @@
+# Diretórios e arquivos do Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/*.tfstate
+**/*.tfstate.backup
+
+# Arquivos temporários e de log
+*.log
+*.bak
+*.swp
+*.tmp
+
+# Arquivos sensíveis
+# *.tfvars
+# !variables.tfvars  # exceto este, se você quiser versioná-lo
+
+# IDEs
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store

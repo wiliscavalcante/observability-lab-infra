@@ -1,0 +1,50 @@
+prometheus:
+  thanosService:
+    enabled: true
+
+  thanosServiceMonitor:
+    enabled: true
+
+  prometheusSpec:
+    replicas: 2
+    externalLabels:
+      cluster: kind-lab
+      replica: "$(POD_NAME)"
+
+    enableAdminAPI: true
+
+    thanos:
+      objectStorageConfig:
+        existingSecret:
+          name: thanos-objstore-config
+          key: objstore.yml
+      image: quay.io/thanos/thanos:v0.32.5
+      version: v0.32.5
+      grpcServerTlsConfig:
+        insecureSkipVerify: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 250m
+          memory: 512Mi
+
+    podMetadata:
+      labels:
+        thanos-store-api: "true"
+
+    retention: 24h
+    retentionSize: "2GB"
+
+    tsdb:
+      outOfOrderTimeWindow: 0s
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 8Gi

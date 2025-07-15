@@ -1,0 +1,12 @@
+nfs:
+  server: 192.168.68.136
+  path: /nfsshare  # <-- caminho exportado pelo container NFS
+
+storageClass:
+  name: efs-sc
+  defaultClass: false
+  reclaimPolicy: Retain
+  accessModes: ["ReadWriteMany"]
+  volumeBindingMode: Immediate
+  mountOptions:
+    - nfsvers=4.1

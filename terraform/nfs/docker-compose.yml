@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  nfs-server:
+    image: itsthenetwork/nfs-server-alpine:12
+    container_name: nfs-server
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "2049:2049"
+    environment:
+      - SHARED_DIRECTORY=/nfsshare
+    volumes:
+      - /home/ubuntu/nfs-lab-storage:/nfsshare
