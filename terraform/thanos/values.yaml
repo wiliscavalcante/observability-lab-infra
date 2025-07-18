@@ -1,0 +1,133 @@
+# existingObjstoreSecret: thanos-objstore
+
+# query:
+#   replicaCount: 2
+#   externalLabels:
+#     cluster: kind-lab
+#   dnsDiscovery:
+#     sidecarsService: "prometheus-operated"
+#     sidecarsNamespace: "monitoring"
+#   replicaLabel: prometheus_replica
+#   queryFrontend: true
+#   extraFlags:
+#     - --query.promql-engine=thanos
+
+# queryFrontend:
+#   replicaCount: 2
+#   extraFlags:
+#     - '--query-frontend.downstream-tripper-config="max_idle_conns_per_host": 100'
+#   # Removido config com Redis para evitar erro
+#   ingress:
+#     enabled: false
+
+# storegateway:
+#   enabled: true
+#   replicaCount: 2
+#   args:
+#     - store
+#     - --grpc-address=0.0.0.0:10901
+#     - --http-address=0.0.0.0:10902
+#     - --data-dir=/data
+#     - --objstore.config-file=/conf/objstore.yml
+#   persistence:
+#     enabled: true
+#     storageClass: standard
+#     accessModes: [ReadWriteOnce]
+#     size: 10Gi
+
+# compactor:
+#   enabled: true
+#   retentionResolutionRaw: 90d
+#   retentionResolution5m: 180d
+#   retentionResolution1h: 2y
+
+# bucketweb: # Adicionando o Bucket Web, que é útil para depuração e visualização de blocos
+#   enabled: true
+#   resources:
+#     requests:
+#       cpu: 100m
+#       memory: 128Mi
+#     limits:
+#       cpu: 200m
+#       memory: 256Mi
+#   ingress:
+#     enabled: false # Usaremos Istio para o Bucket Web também
+#   service:
+#     type: ClusterIP
+#     port: 8080 # Porta padrão do Bucket Web
+existingObjstoreSecret: thanos-objstore
+
+query:
+  replicaCount: 2
+  externalLabels:
+    cluster: kind-lab
+  dnsDiscovery:
+    sidecarsService: "prometheus-operated"
+    sidecarsNamespace: "monitoring"
+  replicaLabel: prometheus_replica
+  queryFrontend: true
+  extraFlags:
+    - --query.promql-engine=thanos
+
+queryFrontend:
+  replicaCount: 2
+  extraFlags:
+    - '--query-frontend.downstream-tripper-config="max_idle_conns_per_host": 100'
+  ingress:
+    enabled: false
+
+storegateway:
+  enabled: true
+  replicaCount: 2
+  args:
+    - store
+    - --grpc-address=0.0.0.0:10901
+    - --http-address=0.0.0.0:10902
+    - --data-dir=/data
+    - --objstore.config-file=/conf/objstore.yml
+  persistence:
+    enabled: true
+    storageClass: standard  # Altere para gp3 no EKS
+    accessModes: [ReadWriteOnce]
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+compactor:
+  enabled: true
+  replicaCount: 1  # Sempre singleton
+  retentionResolutionRaw: 90d
+  retentionResolution5m: 180d
+  retentionResolution1h: 2y
+  consistencyDelay: 30m   # ⏳ Espera 30 min antes de agir em blocos recém-subidos
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: standard
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+bucketweb:
+  enabled: true
+  service:
+    type: ClusterIP
+    port: 8080
+  ingress:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
