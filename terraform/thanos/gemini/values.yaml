@@ -1,0 +1,87 @@
+# observability/thanos/values.yaml - Conteúdo corrigido com base na sua contribuição
+
+# Reutiliza o Secret existente criado manualmente
+existingObjstoreSecret: thanos-objstore-secret
+
+# Mapeia a chave 'objstore.yaml' do Secret para o arquivo 'objstore.yml' no container
+existingObjstoreSecretItems:
+  - key: objstore.yaml       # 🔑 Nome da chave no Secret (que criamos como objstore.yaml)
+    path: objstore.yml     # 📄 Nome do arquivo esperado dentro do container pelo Thanos
+    mode: 420                # Permissões do arquivo
+
+query:
+  enabled: true
+  replicaCount: 2 # Mantendo 2 réplicas para HA, como em planos anteriores
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  ingress:
+    enabled: false # Continuamos usando Istio
+  service:
+    type: ClusterIP
+    port: 9090
+    name: thanos-query # Nome do serviço que será criado para o Thanos Query
+  queryEndpoints:
+    # Descoberta dos Sidecars do Prometheus (via serviço headless prometheus-operated)
+    - "dnssrv+_grpc._tcp.prometheus-operated.observability.svc.cluster.local"
+    # Descoberta dos Store Gateways (que este mesmo chart vai implantar)
+    - "dnssrv+_grpc._tcp.thanos-storegateway.observability.svc.cluster.local"
+
+storegateway:
+  enabled: true
+  replicaCount: 2 # Mantendo 2 réplicas para HA
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: standard  # ✅ No EKS, altere para gp3. Para Kind, 'standard' deve funcionar.
+
+compactor:
+  enabled: true
+  replicaCount: 1 # O compactor geralmente roda como singleton
+  retentionResolutionRaw: 30d     # ⏱️ 30 dias dados brutos
+  retentionResolution5m: 90d      # ⏱️ 90 dias agregados de 5 min
+  retentionResolution1h: 1y       # ⏱️ 1 ano agregados de 1 hora
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: standard  # ✅ No EKS, altere para gp3. Para Kind, 'standard' deve funcionar.
+
+bucketweb: # Adicionando o Bucket Web, que é útil para depuração e visualização de blocos
+  enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  ingress:
+    enabled: false # Usaremos Istio para o Bucket Web também
+  service:
+    type: ClusterIP
+    port: 8080 # Porta padrão do Bucket Web
+
+rbac: # Boas práticas de segurança
+  create: true
+
+serviceAccount:
+  create: true
+  name: thanos-sa # Nome da Service Account
