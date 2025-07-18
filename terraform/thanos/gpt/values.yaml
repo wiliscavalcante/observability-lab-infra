@@ -1,0 +1,70 @@
+## Reutiliza o Secret existente criado manualmente
+existingObjstoreSecret: thanos-objstore-secret
+
+existingObjstoreSecretItems:
+  - key: bucket.yaml       # 🔑 Nome da chave no Secret
+    path: objstore.yml     # 📄 Nome do arquivo esperado dentro do container
+    mode: 420
+query:
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  ingress:
+    enabled: false
+  service:
+    type: ClusterIP
+
+storegateway:
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: standard  # ✅ No EKS, altere para gp3
+
+compactor:
+  enabled: true
+  retentionResolutionRaw: 30d     # ⏱️ 30 dias dados brutos
+  retentionResolution5m: 90d      # ⏱️ 90 dias agregados de 5 min
+  retentionResolution1h: 1y       # ⏱️ 1 ano agregados de 1 hora
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: standard  # ✅ No EKS, altere para gp3
+
+bucketweb:
+  enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: thanos-sa
