@@ -1,0 +1,58 @@
+kubectl create ns monitoring
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install minio bitnami/minio --namespace monitoring --set persistence.enabled=false
+
+
+
+export ROOT_USER=$(kubectl get secret --namespace monitoring minio -o jsonpath="{.data.root-user}" | base64 -d)
+export ROOT_PASSWORD=$(kubectl get secret --namespace monitoring minio -o jsonpath="{.data.root-password}" | base64 -d)
+
+
+kubectl run minio-client --rm -i -t --restart=Never --namespace monitoring \
+  --env MINIO_ROOT_USER=$ROOT_USER \
+  --env MINIO_ROOT_PASSWORD=$ROOT_PASSWORD \
+  --image docker.io/bitnami/minio-client \
+  -- bash
+
+
+mc alias set local http://minio.monitoring.svc.cluster.local:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
+mc mb local/thanos
+
+
+cat <<EOF > objstore.yml
+type: S3
+config:
+  endpoint: "minio.monitoring.svc.cluster.local:9000"
+  bucket: "thanos"
+  access_key: "${ROOT_USER}"
+  secret_key: "${ROOT_PASSWORD}"
+  insecure: true
+EOF
+
+
+kubectl create secret generic thanos-objstore \
+  --from-file=objstore.yml \
+  -n monitoring
+
+kubectl get secret thanos-objstore -n monitoring -o yaml
+
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm install prom-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace \
+  -f values-prometheus-thanos.yaml
+
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+
+
+helm upgrade --install thanos-store bitnami/thanos \
+  --namespace monitoring \
+  -f values-thanos-store.yaml
+
+
